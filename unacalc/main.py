@@ -256,13 +256,13 @@ class Unacalc(QWidget):
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)
 
+        user_guide_action = QAction('User Guide', self)
+        user_guide_action.triggered.connect(self.show_help)
+        help_menu.addAction(user_guide_action)
+
         about_action = QAction('About', self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
-
-        help_action = QAction('Help', self)
-        help_action.triggered.connect(self.show_help)
-        help_menu.addAction(help_action)
 
         self.layout.setMenuBar(self.menu_bar)
 
@@ -272,15 +272,38 @@ class Unacalc(QWidget):
         about_msg.setTextFormat(Qt.RichText)
         about_msg.setText(
             f"""
-            Unacalc: A Unit-Aware Calculator<br/>
-            Version {VERSION}<br/>
-            <a href='https://github.com/tovam/unacalc'>https://github.com/tovam/unacalc</a>"""
+            <h2>Unacalc</h2>
+            <p><b>Version:</b> {VERSION}</p>
+            <p>Unacalc is a unit-aware calculator that allows you to perform complex calculations 
+            with units seamlessly.</p>
+            <p>For more information, visit our 
+            <a href='https://github.com/tovam/unacalc'>GitHub page</a>.</p>
+            <p>Developed by <a href='https://github.com/tovam'>tovam</a>.</p>
+            """
         )
         about_msg.exec_()
 
+
     def show_help(self):
-        QMessageBox.information(self, "Help", "Enter expressions using standard mathematical notation.\n"
-                                              "Example: '3 * 5 m/s^2 in km/h^2'")
+        QMessageBox.information(self, "Help", 
+            "<h2>Welcome to Unacalc!</h2>"
+            "<p>Unacalc is a unit-aware calculator that allows you to perform complex calculations "
+            "with units seamlessly.</p>"
+            "<h3>Examples of valid expressions:</h3>"
+            "<ul>"
+            "  <li><b>Basic arithmetic with units:</b><br>"
+            "    <code>3 * 5 m/s^2 in km/h^2</code></li>"
+            "  <li><b>Converting units:</b><br>"
+            "    <code>1000 g in kg</code><br>"
+            "    <code>2 hours in minutes</code></li>"
+            "  <li><b>Scientific notation:</b><br>"
+            "    <code>4.5e3 J / 1.2e2 s</code></li>"
+            "  <li><b>Negative and positive numbers:</b><br>"
+            "    <code>-1 + 2</code></li>"
+            "</ul>"
+            "<p>You can type expressions directly into the input field.</p>"
+            "<p>Many units and constants are supported.</p>"
+        )
 
     SPECIAL_BUTTONS = {
         '÷': '/',
