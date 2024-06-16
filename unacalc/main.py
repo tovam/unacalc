@@ -288,6 +288,20 @@ class Unacalc(QWidget):
 
     def create_buttons(self):
         self.buttons = {}
+        top_buttons_layout = QHBoxLayout()
+
+        top_buttons = [
+            ('(', ')', '⌫', 'Clear')
+        ]
+
+        for text in top_buttons[0]:
+            button = CustomButton(text)
+            button.clicked.connect(self.on_top_button_clicked)
+            top_buttons_layout.addWidget(button)
+            self.buttons[text] = button
+
+        self.layout.addLayout(top_buttons_layout)
+
         buttons_layout = QGridLayout()
         
         buttons = [
@@ -330,6 +344,16 @@ class Unacalc(QWidget):
         else:
             if text in self.SPECIAL_BUTTONS:
                 text = self.SPECIAL_BUTTONS[text]
+            self.input_field.setText(self.input_field.text() + text)
+
+    def on_top_button_clicked(self):
+        button = self.sender()
+        text = button.text()
+        if text == '⌫':
+            self.input_field.setText(self.input_field.text()[:-1])
+        elif text == 'Clear':
+            self.input_field.clear()
+        else:
             self.input_field.setText(self.input_field.text() + text)
 
     def auto_calculate(self):
