@@ -62,7 +62,7 @@ class CustomButton(QPushButton):
     def mouseReleaseEvent(self, event):
         super().mouseReleaseEvent(event)
         self.animate_color(self.pressed_color, self.hover_color, 100)
-
+        self.clearFocus()
 
 class ExpressionConstant:
     def __init__(self, name):
