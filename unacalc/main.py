@@ -4,7 +4,7 @@ import numpy as np
 from pyparsing import Word, alphas, nums, oneOf, infixNotation, opAssoc, Group, ParserElement, Combine, Optional
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QGridLayout, QLabel, QMenuBar, QAction, QMessageBox
 from PyQt5.QtGui import QFont, QPalette, QColor, QKeySequence
-from PyQt5.QtCore import Qt, QPropertyAnimation, pyqtProperty, QVariantAnimation, QPointF
+from PyQt5.QtCore import Qt, QPropertyAnimation, pyqtProperty, QVariantAnimation, QPointF, QTimer
 
 VERSION = "1.0.1"
 
@@ -185,8 +185,8 @@ class Unacalc(QWidget):
         super().__init__()
 
         self.setWindowTitle(f'Unacalc {VERSION}')
-        self.setGeometry(100, 100, 700, 400)
-
+        self.setGeometry(100, 100, 500, 400)
+        
         self.layout = QVBoxLayout()
 
         self.create_menu()
@@ -228,7 +228,14 @@ class Unacalc(QWidget):
         exit_shortcut.triggered.connect(self.close)
         self.addAction(exit_shortcut)
 
+        QTimer.singleShot(0, self.center_window)
         self.show()
+
+    def center_window(self):
+        screen_geometry = QApplication.desktop().screenGeometry()
+        x = (screen_geometry.width() - self.width()) // 2
+        y = (screen_geometry.height() - self.height()) // 2
+        self.move(x, y)
 
     def create_menu(self):
         self.menu_bar = QMenuBar(self)
