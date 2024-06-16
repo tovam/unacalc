@@ -204,15 +204,21 @@ class Unacalc(QWidget):
         self.result_field_label.setFont(QFont('Arial', 12, QFont.Bold))
         self.layout.addWidget(self.result_field_label)
 
-        self.result_field = QLineEdit()
-        self.result_field.setReadOnly(True)
-        self.layout.addWidget(self.result_field)
+        result_layout = QHBoxLayout()
+        self.result_value_field = QLineEdit()
+        self.result_value_field.setReadOnly(True)
+        self.result_unit_field = QLineEdit()
+        self.result_unit_field.setReadOnly(True)
+        result_layout.addWidget(self.result_value_field)
+        result_layout.addWidget(self.result_unit_field)
+        self.layout.addLayout(result_layout)
 
         font = QFont()
         font.setPointSize(14)
 
         self.input_field.setFont(font)
-        self.result_field.setFont(font)
+        self.result_value_field.setFont(font)
+        self.result_unit_field.setFont(font)
 
         self.layout.addSpacing(10)
         
@@ -336,10 +342,12 @@ class Unacalc(QWidget):
             result = Expression(expr).evaluate()
             if dest_unit:
                 result = ureg.Quantity(result.m_as(dest_unit), dest_unit)
-            self.result_field.setText(str(result))
+            self.result_value_field.setText(f"{result.magnitude:.3f}")
+            self.result_unit_field.setText(str(result.units))
             self.input_field.setStyleSheet("background-color: None;")
         except Exception as e:
-            self.result_field.setText("Error")
+            self.result_value_field.setText("Error")
+            self.result_unit_field.setText("")
             self.input_field.setStyleSheet("background-color: #550000;")
             print(f"Error: {e}", file=sys.stderr)
 
@@ -361,9 +369,10 @@ class Unacalc(QWidget):
 
     def mousePressEvent(self, event):
         widget = self.childAt(event.pos())
-        if widget not in [self.input_field, self.result_field] + list(self.buttons.values()):
+        if widget not in [self.input_field, self.result_value_field, self.result_unit_field] + list(self.buttons.values()):
             self.input_field.clearFocus()
-            self.result_field.clearFocus()
+            self.result_value_field.clearFocus()
+            self.result_unit_field.clearFocus()
         super().mousePressEvent(event)
 
 def main():
