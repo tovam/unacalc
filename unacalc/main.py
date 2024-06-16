@@ -2,7 +2,7 @@ import sys
 import pint
 import numpy as np
 from pyparsing import Word, alphas, nums, oneOf, infixNotation, opAssoc, Group, ParserElement, Combine, Optional
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QGridLayout, QLabel, QMenuBar, QAction, QMessageBox
+from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QGridLayout, QLabel, QMenuBar, QAction, QMessageBox, QComboBox, QRadioButton, QButtonGroup, QSlider
 from PyQt5.QtGui import QFont, QPalette, QColor, QKeySequence
 from PyQt5.QtCore import Qt, QPropertyAnimation, QVariantAnimation, QTimer
 
@@ -186,7 +186,7 @@ class Unacalc(QWidget):
         super().__init__()
 
         self.setWindowTitle(f'Unacalc {VERSION}')
-        self.setGeometry(100, 100, 500, 400)
+        self.setGeometry(100, 100, 500, 500)
         
         self.layout = QVBoxLayout()
 
@@ -215,6 +215,52 @@ class Unacalc(QWidget):
         result_layout.addWidget(self.result_value_field)
         result_layout.addWidget(self.result_unit_field)
         self.layout.addLayout(result_layout)
+
+        controls_layout = QHBoxLayout()
+
+        self.precision_label = QLabel("Precision:")
+        self.precision_label.setFont(QFont('Arial', 12))
+        controls_layout.addWidget(self.precision_label)
+
+        self.precision_slider = QSlider(Qt.Horizontal)
+        self.precision_slider.setRange(1, 10)
+        self.precision_slider.setValue(3)
+        self.precision_slider.setTickPosition(QSlider.TicksBelow)
+        self.precision_slider.setTickInterval(1)
+        self.precision_slider.valueChanged.connect(self.update_display_format)
+        self.precision_slider.setStyleSheet("""
+            QSlider {
+                height: 28px;
+                padding: 20px 0;
+            }
+            QSlider::groove:horizontal {
+                border: 1px solid;
+                height: 5px;
+                margin: 0 12px;
+            }
+            QSlider::handle:horizontal {
+                background: initial;
+                border: 1px solid;
+                margin: -14px -8px;
+            }
+        """)
+        controls_layout.addWidget(self.precision_slider)
+
+        self.format_label = QLabel("Display Format:")
+        self.format_label.setFont(QFont('Arial', 12))
+        controls_layout.addWidget(self.format_label)
+
+        self.normal_radio = QRadioButton("Normal")
+        self.scientific_radio = QRadioButton("Scientific")
+        self.normal_radio.setChecked(True)
+        self.display_format_group = QButtonGroup()
+        self.display_format_group.addButton(self.normal_radio)
+        self.display_format_group.addButton(self.scientific_radio)
+        self.normal_radio.toggled.connect(self.update_display_format)
+        controls_layout.addWidget(self.normal_radio)
+        controls_layout.addWidget(self.scientific_radio)
+
+        self.layout.addLayout(controls_layout)
 
         font = QFont()
         font.setPointSize(14)
@@ -363,14 +409,26 @@ class Unacalc(QWidget):
             result = Expression(expr).evaluate()
             if dest_unit:
                 result = ureg.Quantity(result.m_as(dest_unit), dest_unit)
-            self.result_value_field.setText(f"{result.magnitude:.3f}")
-            self.result_unit_field.setText(str(result.units))
+            self.display_result(result)
             self.input_field.setStyleSheet("background-color: None;")
         except Exception as e:
             self.result_value_field.setText("Error")
             self.result_unit_field.setText("")
             self.input_field.setStyleSheet("background-color: #550000;")
             print(f"Error: {e}", file=sys.stderr)
+
+    def display_result(self, result):
+        precision = self.precision_slider.value()
+        if self.scientific_radio.isChecked():
+            self.result_value_field.setText(f"{result.magnitude:.{precision}e}")
+        else:
+            self.result_value_field.setText(f"{result.magnitude:.{precision}f}")
+        self.result_unit_field.setText(str(result.units))
+
+    def update_display_format(self):
+        expr = self.input_field.text()
+        if expr:
+            self.auto_calculate()
 
     def keyPressEvent(self, event):
         key = event.text()
