@@ -4,7 +4,7 @@ import numpy as np
 from pyparsing import Word, alphas, nums, oneOf, infixNotation, opAssoc, Group, ParserElement, Combine, Optional
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QGridLayout, QLabel, QMenuBar, QAction, QMessageBox
 from PyQt5.QtGui import QFont, QPalette, QColor, QKeySequence
-from PyQt5.QtCore import Qt, QPropertyAnimation, pyqtProperty, QVariantAnimation, QPointF, QTimer
+from PyQt5.QtCore import Qt, QPropertyAnimation, QVariantAnimation, QTimer
 
 VERSION = "1.0.1"
 
@@ -93,12 +93,11 @@ class ExpressionElement:
         unitstr = " "+self.unit if self.unit else ''
         return f"EE({self.value}{unitstr})"
 
-integer = Word(nums).setParseAction(lambda t: int(t[0]))
+integer = Combine(Optional(oneOf('+ -')) + Word(nums)).setParseAction(lambda t: int(t[0]))
 float_number = Combine(
-    (Optional(Word(nums)) + '.' + Word(nums)) | 
-    (Word(nums) + '.')
+    Optional(oneOf('+ -')) + ((Optional(Word(nums)) + '.' + Word(nums)) | (Word(nums) + '.'))
 ).setParseAction(lambda t: float(t[0]))
-scientific_number = Combine(Word(nums) + Optional('.') + Optional(Word(nums)) + oneOf("e E") + Word(nums + "+-")).setParseAction(lambda t: float(t[0]))
+scientific_number = Combine(Optional(oneOf('+ -')) + Word(nums) + Optional('.') + Optional(Word(nums)) + oneOf("e E") + Optional(oneOf('+ -')) + Word(nums)).setParseAction(lambda t: float(t[0]))
 number = scientific_number | float_number | integer
 
 unit = Word(alphas)
@@ -119,7 +118,6 @@ expr = infixNotation(
         (exp, 2, opAssoc.RIGHT),
         (mult, 2, opAssoc.LEFT),
         (plus, 2, opAssoc.LEFT),
-        (oneOf('-'), 1, opAssoc.RIGHT),
     ]
 )
 
