@@ -36,6 +36,9 @@ class CustomButton(QPushButton):
                 margin: 5px;
                 border-radius: 5px;
             }}
+            QPushButton:pressed {{
+                background-color: #a6a6a6;
+            }}
             """
         )
 
@@ -288,65 +291,34 @@ class Unacalc(QWidget):
 
     def create_buttons(self):
         self.buttons = {}
-        top_buttons_layout = QHBoxLayout()
-
-        top_buttons = [
-            ('(', ')', '⌫', 'Clear')
+        button_layouts = [
+            (QHBoxLayout(), ['(', ')', '⌫', 'Clear']),
+            (QGridLayout(), [
+                ('7', 0, 0), ('8', 0, 1), ('9', 0, 2), (self.REV_SPECIAL_BUTTONS['/'], 0, 3),
+                ('4', 1, 0), ('5', 1, 1), ('6', 1, 2), (self.REV_SPECIAL_BUTTONS['*'], 1, 3),
+                ('1', 2, 0), ('2', 2, 1), ('3', 2, 2), (self.REV_SPECIAL_BUTTONS['-'], 2, 3),
+                ('0', 3, 0), ('.', 3, 1), ('^', 3, 2), ('+', 3, 3),
+            ])
         ]
 
-        for text in top_buttons[0]:
-            button = CustomButton(text)
-            button.clicked.connect(self.on_top_button_clicked)
-            top_buttons_layout.addWidget(button)
-            self.buttons[text] = button
+        for layout, button_defs in button_layouts:
+            for button_def in button_defs:
+                if isinstance(button_def, tuple):
+                    text, row, col = button_def
+                    button = CustomButton(text)
+                    layout.addWidget(button, row, col)
+                else:
+                    text = button_def
+                    button = CustomButton(text)
+                    layout.addWidget(button)
+                button.clicked.connect(self.on_button_clicked)
+                self.buttons[text] = button
+                if text in self.SPECIAL_BUTTONS:
+                    self.buttons[self.SPECIAL_BUTTONS[text]] = button
 
-        self.layout.addLayout(top_buttons_layout)
-
-        buttons_layout = QGridLayout()
-        
-        buttons = [
-            ('7', 0, 0), ('8', 0, 1), ('9', 0, 2), (self.REV_SPECIAL_BUTTONS['/'], 0, 3),
-            ('4', 1, 0), ('5', 1, 1), ('6', 1, 2), (self.REV_SPECIAL_BUTTONS['*'], 1, 3),
-            ('1', 2, 0), ('2', 2, 1), ('3', 2, 2), (self.REV_SPECIAL_BUTTONS['-'], 2, 3),
-            ('0', 3, 0), ('.', 3, 1), ('^', 3, 2), ('+', 3, 3),
-        ]
-
-        button_style = """
-            QPushButton {
-                background-color: #e1e1e1; 
-                color: #333333; 
-                font-size: 18px; 
-                padding: 10px; 
-                margin: 5px; 
-                border-radius: 5px;
-            }
-            QPushButton:pressed {
-                background-color: #a6a6a6;
-            }
-        """
-
-        for text, row, col in buttons:
-            button = CustomButton(text)
-            button.setStyleSheet(button_style)
-            button.clicked.connect(self.on_button_clicked)
-            buttons_layout.addWidget(button, row, col)
-            self.buttons[text] = button
-            if text in self.SPECIAL_BUTTONS:
-                self.buttons[self.SPECIAL_BUTTONS[text]] = button
-
-        self.layout.addLayout(buttons_layout)
+            self.layout.addLayout(layout)
 
     def on_button_clicked(self):
-        button = self.sender()
-        text = button.text()
-        if text == '=':
-            self.auto_calculate()
-        else:
-            if text in self.SPECIAL_BUTTONS:
-                text = self.SPECIAL_BUTTONS[text]
-            self.input_field.setText(self.input_field.text() + text)
-
-    def on_top_button_clicked(self):
         button = self.sender()
         text = button.text()
         if text == '⌫':
@@ -354,6 +326,8 @@ class Unacalc(QWidget):
         elif text == 'Clear':
             self.input_field.clear()
         else:
+            if text in self.SPECIAL_BUTTONS:
+                text = self.SPECIAL_BUTTONS[text]
             self.input_field.setText(self.input_field.text() + text)
 
     def auto_calculate(self):
@@ -387,8 +361,8 @@ class Unacalc(QWidget):
         elif event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
             self.auto_calculate()
         elif event.key() == Qt.Key_Backspace:
-            self.input_field.setText(self.input_field.text()[:-1])
-        elif key in '0123456789+-*/.':
+            self.buttons['⌫'].click()
+        elif key in '0123456789+-*/.()^' or key.isalpha():
             self.input_field.setText(self.input_field.text() + key)
 
     def mousePressEvent(self, event):
