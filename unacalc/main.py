@@ -1,10 +1,12 @@
 import sys
 import pint
+import random
 import numpy as np
 from pyparsing import Word, alphas, nums, oneOf, infixNotation, opAssoc, Group, ParserElement, Combine, Optional
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QGridLayout, QLabel, QMenuBar, QAction, QMessageBox, QComboBox, QRadioButton, QButtonGroup, QSlider
-from PyQt5.QtGui import QFont, QPalette, QColor, QKeySequence
+from PyQt5.QtGui import QFont, QPalette, QColor, QKeySequence, QIcon, QPixmap, QImage
 from PyQt5.QtCore import Qt, QPropertyAnimation, QVariantAnimation, QTimer
+from collections import namedtuple
 
 VERSION = "1.0.1"
 
@@ -181,6 +183,34 @@ class Expression:
             value = float(expr)
             return ureg.Quantity(value)
 
+class UnacalcIcon:
+    def __init__(self):
+        buttons_texts = random.sample('+−×÷', 4)
+        buttons_coords = namedtuple('ButtonCoords', 'left top right bottom')(28, 45, 72, 89)
+        icon_data = bytes(f"""<svg width="100" height="100" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100" height="100" rx="15" ry="15" fill="#333" />
+  <rect x="8" y="8" width="40" height="40" rx="5" ry="5" fill="#FF0000" />
+  <text x="{buttons_coords.left}" y="{buttons_coords.top}" font-size="55" font-weight="bold" fill="white" text-anchor="middle" alignment-baseline="middle">{buttons_texts[0]}</text>
+  <rect x="52" y="8" width="40" height="40" rx="5" ry="5" fill="#00FF00" />
+  <text x="{buttons_coords.right}" y="{buttons_coords.top}" font-size="55" font-weight="bold" fill="black" text-anchor="middle" alignment-baseline="middle">{buttons_texts[1]}</text>
+  <rect x="8" y="52" width="40" height="40" rx="5" ry="5" fill="#1E90FF" />
+  <text x="{buttons_coords.left}" y="{buttons_coords.bottom}" font-size="55" font-weight="bold" fill="white" text-anchor="middle" alignment-baseline="middle">{buttons_texts[2]}</text>
+  <rect x="52" y="52" width="40" height="40" rx="5" ry="5" fill="#FFFF00" />
+  <text x="{buttons_coords.right}" y="{buttons_coords.bottom}" font-size="55" font-weight="bold" fill="black" text-anchor="middle" alignment-baseline="middle">{buttons_texts[3]}</text>
+  <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="3" dy="3" stdDeviation="3" flood-color="rgba(0,0,0,0.5)" />
+  </filter>
+  <rect x="8" y="8" width="40" height="40" rx="5" ry="5" fill="none" filter="url(#shadow)" />
+  <rect x="52" y="8" width="40" height="40" rx="5" ry="5" fill="none" filter="url(#shadow)" />
+  <rect x="8" y="52" width="40" height="40" rx="5" ry="5" fill="none" filter="url(#shadow)" />
+  <rect x="52" y="52" width="40" height="40" rx="5" ry="5" fill="none" filter="url(#shadow)" />
+</svg>
+""", "utf8")
+        self.pixmap = QPixmap()
+        self.pixmap.loadFromData(icon_data)
+        self.icon = QIcon(self.pixmap)
+
+
 class Unacalc(QWidget):
     def __init__(self):
         super().__init__()
@@ -188,6 +218,8 @@ class Unacalc(QWidget):
         self.setWindowTitle(f'Unacalc {VERSION}')
         self.setGeometry(100, 100, 500, 500)
         
+        self.setWindowIcon(UnacalcIcon().icon)
+
         self.layout = QVBoxLayout()
 
         self.create_menu()
