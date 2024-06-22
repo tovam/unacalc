@@ -12,6 +12,7 @@ This project is a unit-aware calculator application developed using PyQt5 for th
 - **Intuitive GUI**: Features an easy-to-use interface with an input field, result display, and a grid of buttons for input.
 - **Error Handling**: Displays error messages for invalid expressions.
 - **Keyboard Input**: Supports keyboard input for digits, operators, and backspace.
+- **Date and Time Calculations**: Supports date and time arithmetic and conversion (e.g., "2024-11-13 + 2d", "now - 2 weeks").
 
 ## Getting Started
 
@@ -51,7 +52,6 @@ python unacalc.py
 - Use the buttons to input numbers and operators.
 - The result is automatically calculated and displayed in the result field.
 - Use the "in" keyword to convert units (e.g., `100 m in cm`).
-- Press the "=" button or hit Enter to evaluate the expression.
 
 ## Example Expressions
 
@@ -60,6 +60,7 @@ python unacalc.py
 - `100 W * 2 h in Wh`
 - `100 m in cm`
 - `1e3 kg * 9.81 m/s^2 in N`
+- `2024-06-08T19:45:10 + 5 month`
 
 ## Contributing
 

@@ -1,4 +1,5 @@
 import sys
+import re
 import pint
 import random
 import numpy as np
@@ -6,6 +7,8 @@ from pyparsing import Word, alphas, nums, oneOf, infixNotation, opAssoc, Group, 
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QGridLayout, QLabel, QMenuBar, QAction, QMessageBox, QComboBox, QRadioButton, QButtonGroup, QSlider
 from PyQt5.QtGui import QFont, QPalette, QColor, QKeySequence, QIcon, QPixmap, QImage
 from PyQt5.QtCore import Qt, QPropertyAnimation, QVariantAnimation, QTimer
+from datetime import datetime, timedelta
+import traceback
 from collections import namedtuple
 
 VERSION = "1.0.1"
@@ -69,31 +72,55 @@ class CustomButton(QPushButton):
         self.animate_color(self.pressed_color, self.hover_color, 100)
         self.clearFocus()
 
-class ExpressionConstant:
-    def __init__(self, name):
-        self.name = name
-    def pint(self):
-        if hasattr(self, 'obj'):
-            return self.obj
-        if self.name == 'c':
-            self.obj = ureg.Quantity("speed_of_light")
-        self.obj = ureg.Quantity(self.name)
-        return self.pint()
-    def __repr__(self):
-        return f"ExpressionConstant({self.name})"
-
 class ExpressionElement:
-    def __init__(self, value, unit):
-        self.value = value
-        if isinstance(value, str):
-            if '.' in self.value:
-                self.value = float(self.value)
+    def __init__(self, value, unit=None):
+        self.is_date = False
+        date_pattern = r'^\d{4}-\d{2}-\d{2}$'
+        datetime_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?((?:[+-]\d{2}:\d{2})|Z)?$'
+
+        if isinstance(value, datetime):
+            self.value = value
+            self.is_date = True
+        elif isinstance(value, str):
+            if re.match(datetime_pattern, value):
+                try:
+                    self.value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                    self.is_date = True
+                except ValueError:
+                    raise ValueError(f"Invalid ISO 8601 datetime format: {value}")
+            elif re.match(date_pattern, value):
+                try:
+                    self.value = datetime.strptime(value, "%Y-%m-%d")
+                    self.is_date = True
+                except ValueError:
+                    raise ValueError(f"Invalid date format: {value}")
             else:
-                self.value = int(self.value)
+                if '.' in value:
+                    self.value = float(value)
+                else:
+                    self.value = int(value)
+        else:
+            self.value = value
+        
         self.unit = unit and unit.replace('µ', 'u')
-        self.obj = ureg.Quantity(self.value, self.unit)
+        self.obj = ureg.Quantity(self.value, self.unit) if not self.is_date else self.value
+
+    @staticmethod
+    def from_constant(name):
+        if name == 'now':
+            return ExpressionElement(datetime.now())
+        if name == 'today':
+            return ExpressionElement(datetime.combine(datetime.now(), datetime.min.time()))
+
+        if name == 'c':
+            obj = ureg.Quantity("speed_of_light")
+        else:
+            obj = ureg.Quantity(name)
+        return ExpressionElement(obj.magnitude, str(obj.units))
+
     def set_unit(self, unit):
         return ExpressionElement(self.value, unit)
+
     def __repr__(self):
         unitstr = " "+self.unit if self.unit else ''
         return f"EE({self.value}{unitstr})"
@@ -109,9 +136,11 @@ unit = Word(alphas)
 value_without_unit = number.setParseAction(lambda t: ExpressionElement(t[0], None))
 value_with_unit = Group(number + unit).setParseAction(lambda t: t[0][0].set_unit(t[0][1]))
 
-constant = Word(alphas + "_").setParseAction(lambda t: [ExpressionConstant(t[0])])
+constant = Word(alphas + "_").setParseAction(lambda t: [ExpressionElement.from_constant(t[0])])
 
-operand = value_with_unit | value_without_unit | constant
+date_pattern = Combine(Word(nums, exact=4) + '-' + Word(nums, exact=2) + '-' + Word(nums, exact=2)).setParseAction(lambda t: ExpressionElement(t[0], None))
+datetime_pattern = Combine(Word(nums, exact=4) + '-' + Word(nums, exact=2) + '-' + Word(nums, exact=2) + 'T' + Word(nums, exact=2) + ':' + Word(nums, exact=2) + Optional(':' + Word(nums, exact=2)) + Optional('.' + Word(nums)) + Optional(oneOf('+ -') + Word(nums, exact=2) + ':' + Word(nums, exact=2) | 'Z')).setParseAction(lambda t: ExpressionElement(t[0], None))
+operand = datetime_pattern | date_pattern | value_with_unit | value_without_unit | constant
 
 plus = oneOf('+ -')
 mult = oneOf('* /')
@@ -136,11 +165,13 @@ class Expression:
     
     def evaluate(self):
         result = self._evaluate_expression(self.parsed_expression)
-        return result.to_preferred(ureg.default_preferred_units)
+        if isinstance(result, ExpressionElement):
+            result = result.obj
+        if isinstance(result, datetime):
+            return result
+        return result.to_preferred(ureg.default_preferred_units) 
     
     def _evaluate_expression(self, expr):
-        if isinstance(expr, ExpressionConstant):
-            return expr.pint()
         if isinstance(expr, ExpressionElement):
             return expr.obj
         if isinstance(expr, pint.Quantity):
@@ -150,6 +181,19 @@ class Expression:
                 left = self._evaluate_expression(expr[0])
                 op = expr[1]
                 right = self._evaluate_expression(expr[2])
+
+                if isinstance(left, datetime) or isinstance(right, datetime):
+                    if isinstance(left, pint.Quantity):
+                        left = timedelta(seconds=left.to('seconds').magnitude)
+                    if isinstance(right, pint.Quantity):
+                        right = timedelta(seconds=right.to('seconds').magnitude)
+                    
+                    if op == '+':
+                        return ExpressionElement(left + right, None)
+                    elif op == '-':
+                        return ExpressionElement(left - right, None)
+                    else:
+                        raise ValueError(f"Unsupported operation with datetime:\nL: {repr(left)}\nO: {repr(op)}\nR: {repr(right)}")
 
                 if op == '*':
                     result = left * right
@@ -172,7 +216,7 @@ class Expression:
                     tmp = self._evaluate_expression([tmp, expr[i], expr[i+1]])
                 return tmp
             elif len(expr) == 2:
-                value = float(expr[0])
+                value = self._evaluate_expression(expr[0])
                 unit = expr[1]
                 return ureg.Quantity(value, unit)
             else:
@@ -180,6 +224,8 @@ class Expression:
         elif isinstance(expr, ExpressionElement):
             return expr.obj
         else:
+            if isinstance(expr, datetime):
+                return ExpressionElement(expr, None)
             value = float(expr)
             return ureg.Quantity(value)
 
@@ -378,6 +424,9 @@ class Unacalc(QWidget):
             "    <code>4.5e3 J / 1.2e2 s</code></li>"
             "  <li><b>Negative and positive numbers:</b><br>"
             "    <code>-1 + 2</code></li>"
+            "  <li><b>Date and Time Calculations:</b><br>"
+            "    <code>2024-06-08T19:45:10 + 5 month</code><br>"
+            "    <code>now - 2 weeks</code></li>"
             "</ul>"
             "<p>You can type expressions directly into the input field.</p>"
             "<p>Many units and constants are supported.</p>"
@@ -448,14 +497,20 @@ class Unacalc(QWidget):
             self.result_unit_field.setText("")
             self.input_field.setStyleSheet("background-color: #550000;")
             print(f"Error: {e}", file=sys.stderr)
+            # traceback.print_exc()
 
     def display_result(self, result):
         precision = self.precision_slider.value()
-        if self.scientific_radio.isChecked():
-            self.result_value_field.setText(f"{result.magnitude:.{precision}e}")
+        if isinstance(result, datetime):
+            self.result_value_field.setText(result.strftime('%Y-%m-%d %H:%M:%S'))
+            self.result_unit_field.setText("")
         else:
-            self.result_value_field.setText(f"{result.magnitude:.{precision}f}")
-        self.result_unit_field.setText(str(result.units))
+            if self.scientific_radio.isChecked():
+                self.result_value_field.setText(f"{result.magnitude:.{precision}e}")
+            else:
+                self.result_value_field.setText(f"{result.magnitude:.{precision}f}")
+            self.result_unit_field.setText(str(result.units))
+
 
     def update_display_format(self):
         expr = self.input_field.text()
