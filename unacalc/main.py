@@ -11,7 +11,7 @@ from datetime import datetime, timedelta
 import traceback
 from collections import namedtuple
 
-VERSION = "1.0.1"
+VERSION = "1.0.2"
 
 ureg = pint.UnitRegistry()
 ureg.default_preferred_units = [ureg.s, ureg.m, ureg.kg, ureg.W, ureg.Wh]
