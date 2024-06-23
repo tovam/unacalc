@@ -23,9 +23,9 @@ ParserElement.enablePackrat()
 class CustomButton(QPushButton):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.default_color = QColor("#e1e1e1")
-        self.hover_color = QColor("#d1d1d1")
-        self.pressed_color = QColor("#a6a6a6")
+        self.default_color = QColor("#2E3440")
+        self.hover_color = QColor("#4C566A")
+        self.pressed_color = QColor("#5E81AC")
         self.setAutoFillBackground(True)
         self.setMouseTracking(True)
         self.set_color(self.default_color)
@@ -35,14 +35,15 @@ class CustomButton(QPushButton):
             f"""
             QPushButton {{
                 background-color: {color.name()};
-                color: #333333;
+                color: #D8DEE9;
                 font-size: 18px;
                 padding: 10px;
                 margin: 5px;
+                border: 1px solid #3B4252;
                 border-radius: 5px;
             }}
             QPushButton:pressed {{
-                background-color: #a6a6a6;
+                background-color: {self.pressed_color.name()};
             }}
             """
         )
@@ -71,6 +72,7 @@ class CustomButton(QPushButton):
         super().mouseReleaseEvent(event)
         self.animate_color(self.pressed_color, self.hover_color, 100)
         self.clearFocus()
+
 
 class ExpressionElement:
     def __init__(self, value, unit=None):
@@ -272,6 +274,7 @@ class Unacalc(QWidget):
 
         self.input_field_label = QLabel("Input Expression:")
         self.input_field_label.setFont(QFont('Arial', 12, QFont.Bold))
+        self.input_field_label.setObjectName("inputLabel")
         self.layout.addWidget(self.input_field_label)
         
         self.input_field = QLineEdit()
@@ -281,6 +284,7 @@ class Unacalc(QWidget):
         
         self.result_field_label = QLabel("Result:")
         self.result_field_label.setFont(QFont('Arial', 12, QFont.Bold))
+        self.result_field_label.setObjectName("resultLabel")
         self.layout.addWidget(self.result_field_label)
 
         result_layout = QHBoxLayout()
@@ -298,6 +302,7 @@ class Unacalc(QWidget):
 
         self.precision_label = QLabel("Precision:")
         self.precision_label.setFont(QFont('Arial', 12))
+        self.precision_label.setObjectName("precisionLabel")
         controls_layout.addWidget(self.precision_label)
 
         self.precision_slider = QSlider(Qt.Horizontal)
@@ -326,6 +331,7 @@ class Unacalc(QWidget):
 
         self.format_label = QLabel("Display Format:")
         self.format_label.setFont(QFont('Arial', 12))
+        self.format_label.setObjectName("formatLabel")
         controls_layout.addWidget(self.format_label)
 
         self.normal_radio = QRadioButton("Normal")
@@ -363,6 +369,69 @@ class Unacalc(QWidget):
 
         QTimer.singleShot(0, self.center_window)
         self.show()
+
+        self.setStyleSheet("""
+            QWidget {
+                background-color: #2E3440;
+                color: #D8DEE9;
+            }
+            QLineEdit {
+                background-color: #3B4252;
+                border: 2px solid #4C566A;
+                border-radius: 10px;
+                padding: 5px;
+                font-size: 18px;
+                color: #ECEFF4;
+                selection-background-color: #5E81AC;
+            }
+            QLineEdit:focus {
+                border: 2px solid #88C0D0;
+            }
+            QPushButton {
+                background-color: #2E3440;
+                border: 1px solid #3B4252;
+                border-radius: 10px;
+                padding: 10px;
+                font-size: 18px;
+                color: #D8DEE9;
+            }
+            QPushButton:hover {
+                background-color: #4C566A;
+            }
+            QPushButton:pressed {
+                background-color: #5E81AC;
+            }
+            QLabel#inputLabel, QLabel#resultLabel, QLabel#precisionLabel, QLabel#formatLabel {
+                font-size: 16px;
+                font-weight: bold;
+                color: #ECEFF4;
+            }
+            QMenuBar {
+                background-color: #2E3440;
+                color: #D8DEE9;
+            }
+            QMenuBar::item {
+                background: transparent;
+                padding: 5px 10px;
+            }
+            QMenuBar::item:selected {
+                background: #4C566A;
+                color: #ECEFF4;
+            }
+            QMenu {
+                background-color: #3B4252;
+                color: #D8DEE9;
+                border: 1px solid #4C566A;
+            }
+            QMenu::item {
+                background-color: transparent;
+                padding: 5px 20px;
+            }
+            QMenu::item:selected {
+                background-color: #4C566A;
+                color: #ECEFF4;
+            }
+        """)
 
     def center_window(self):
         screen_geometry = QApplication.desktop().screenGeometry()
